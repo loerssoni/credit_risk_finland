@@ -13,7 +13,6 @@ y = pd.read_hdf('y.h5', 'x')
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-
 server = app.server
 
 app.css.config.serve_locally = False
@@ -29,18 +28,22 @@ app.layout = html.Div([
              children=''),
     html.Div(id='output-container-button',
              children=''),
-
-    html.H2(children='Päätöksenteon visualisointi'),
+    html.Div(id='company-info',
+             children=''),
+    
+    html.H2(children='Päätöksenteon tulkinta'),
+    html.P('Muuttamalla liukusäädinten asetuksia voit tutkia, kuinka ennuste' +\
+        'kuvitteelliselle yritykselle muuttuu tietojen muuttuessa.'),
     html.Div([
-
+    
     html.Div(id='slider-output-container', children='', style={'padding': 30}),
-
+        
     html.Div([
     daq.Slider(
         id='tulo',
         min=0,
-        max=3.37308e+09,
-        step=1000,
+        max=1.279177e+06,
+        step=100,
         value=10,
         handleLabel={"showCurrentValue": True,"label": " "}),
     html.P('Lopullinen verotettava tulo'),
@@ -48,9 +51,9 @@ app.layout = html.Div([
     html.Div([
     daq.Slider(
         id='verot',
-        min=-25205.5,
-        max=6.74619e+08,
-        step=1000,
+        min=0,
+        max=2.794776e+05,
+        step=100,
         value=10,
         handleLabel={"showCurrentValue": True,"label": " "}),
     html.P('Lopulliset maksettavat verot'),
@@ -59,8 +62,8 @@ app.layout = html.Div([
     daq.Slider(
         id='ennakot',
         min=0,
-        max=6.74625e+08,
-        step=1000,
+        max=2.826432e+05,
+        step=100,
         value=10,
         handleLabel={"showCurrentValue": True,"label": " "}),
     html.P('Maksetut ennakot'),
@@ -68,9 +71,9 @@ app.layout = html.Div([
     html.Div([
     daq.Slider(
         id='palautus',
-        min=-3.71537e+07,
-        max=2.92022e+07,
-        step=1000,
+        min= -3.390683e+04,
+        max=2.989562e+04,
+        step=100,
         value=10,
         handleLabel={"showCurrentValue": True,"label": " "}),
     html.P('Jäännösvero/Veronpalautus'),
@@ -89,7 +92,7 @@ app.layout = html.Div([
     daq.Slider(
         id='muutokset',
         min=0,
-        max=171,
+        max=30,
         step=1,
         value=0,
         handleLabel={"showCurrentValue": True,"label": " "}),
@@ -99,7 +102,7 @@ app.layout = html.Div([
     daq.Slider(
         id='tyypit',
         min=0,
-        max=44,
+        max=20,
         step=1,
         value=0,
         handleLabel={"showCurrentValue": True,"label": " "}),
@@ -107,7 +110,7 @@ app.layout = html.Div([
     ], style={'width': '35%', 'display': 'inline-block','padding': 20}),
 
     ])
-
+    
 ])
 
 
@@ -122,7 +125,7 @@ def update_output(n_clicks, value):
 
     if len(X) == 0:
         return 'Yrityksen tietoja ei löytynyt.'
-
+    
     features = X.columns[1:]
     for col in features:
         for col2 in features:
@@ -135,7 +138,7 @@ def update_output(n_clicks, value):
 
     X_agg = X.groupby('yTunnus').agg(['mean', 'last'])
     X_agg.columns = [' '.join(col) for col in X_agg.columns]
-
+   
     return 'Todennäköisyys: '+str((gb.predict_proba(X_agg)[0][1]*100).round(2)) + '%'
 
 @app.callback(
@@ -148,6 +151,16 @@ def update_status(n_clicks, value):
     if value.strip() in y.values:    
         return 'Yrityksellä on merkintöjä protestilistalla 1.11.2019 - 4.3.2020.'
     return 'Ei merkintöjä protestilistalla 1.11.2019 - 4.3.2020.'
+
+@app.callback(
+    dash.dependencies.Output('company-info', 'children'),
+    [dash.dependencies.Input('button', 'n_clicks')],
+    [dash.dependencies.State('yid', 'value')])
+def update_status(n_clicks, value):
+    if value is None:
+        return ''
+    X = pd.read_hdf('pred_X.h5', 'X', where='yTunnus == "{}"'.format(value.strip()))
+    return X.to_string()
 
 @app.callback(
     dash.dependencies.Output('slider-output-container', 'children'),
